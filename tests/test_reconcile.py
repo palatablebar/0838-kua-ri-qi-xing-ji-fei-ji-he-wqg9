@@ -33,3 +33,20 @@ def test_metric_total_matches_rows():
 
 def test_ledger_checks_pass():
     assert all(item["ok"] for item in payload()["ledger"]["checks"])
+
+
+def test_ledger_carries_overlap_guards():
+    ledger = payload()["ledger"]
+    check_ids = {item["id"] for item in ledger["checks"]}
+    assert {"ride_complete", "dispute_trace", "suspense_balance"} <= check_ids
+    # 无争议样例：入账即应收，挂账为零
+    assert ledger["held_total"] == "0"
+    assert ledger["booked_total"] == ledger["metric_total"]
+    assert ledger["disputed_rides"] == [] and ledger["overlap_pairs"] == []
+
+
+def test_no_source_ride_is_missing():
+    data = payload()
+    # 来源行要么进入计算，要么在隔离/重复/忽略中留痕
+    counts = data["counts"]
+    assert counts["input"] - counts["computed"] == counts["isolated"] + counts["duplicates"] + counts["ignored"]

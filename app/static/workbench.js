@@ -38,7 +38,9 @@
     $('row-head').innerHTML = '<tr>' + keys.map(function (key) { return '<th>' + esc(labels[key] || key) + '</th>'; }).join('') + tail + '</tr>';
     $('row-body').innerHTML = data.rows.length ? data.rows.map(function (row) {
       var values = keys.map(function (key) { return '<td class="' + (typeof row[key] === 'number' ? 'num' : '') + '">' + esc(row[key]) + '</td>'; }).join('');
-      var verdict = source ? '' : '<td><span class="verdict" data-v="' + esc(row.verdict) + '">' + esc(row.verdict || '') + '</span><br><small>' + esc(row.reason || '') + '</small></td>';
+      var verdict = source ? '' : '<td><span class="verdict" data-v="' + esc(row.verdict) + '">' + esc(row.verdict || '') + '</span>' +
+        (row.overlap_state && row.overlap_state !== 'CLEAR' ? '<br><small class="overlap" data-o="' + esc(row.overlap_state) + '">' + esc(row.overlap_state) + (row.overlap_with && row.overlap_with.length ? ' · 撞 ' + esc(row.overlap_with.join('、')) : '') + '</small>' : '') +
+        '<br><small>' + esc(row.reason || '') + '</small></td>';
       var breakdown = hasBreakdown ? '<td>' + renderBreakdown(row.breakdown) + '</td>' : '';
       return '<tr>' + values + verdict + breakdown + '</tr>';
     }).join('') : '<tr><td class="empty" colspan="' + (keys.length + (source ? 0 : 1)) + '">没有可展示条目</td></tr>';
@@ -50,7 +52,9 @@
       ['来源行', values.counts.input], ['采信行', values.counts.accepted], ['隔离行', values.counts.isolated],
       ['精确重复', values.counts.duplicates], ['忽略行', values.counts.ignored], ['计算条目', values.counts.computed]
     ].map(function (row) { return '<div class="ledger-row"><span>' + row[0] + '</span><strong>' + row[1] + '</strong></div>'; }).join('') +
-      '<div class="ledger-row"><span>' + esc(values.metric_field) + '</span><strong>' + esc(values.metric_total) + '</strong></div>' +
+      '<div class="ledger-row"><span>' + esc(values.metric_field) + ' 应收合计</span><strong>' + esc(values.metric_total) + '</strong></div>' +
+      '<div class="ledger-row"><span>照常入账</span><strong>' + esc(values.booked_total || '0') + '</strong></div>' +
+      '<div class="ledger-row"><span>争议挂账</span><strong>' + esc(values.held_total || '0') + '</strong></div>' +
       values.checks.map(function (check) { return '<div class="ledger-row"><span>' + esc(check.label) + '</span><strong class="' + (check.ok ? 'check-ok' : 'check-bad') + '">' + (check.ok ? '通过' : '异常') + '</strong></div>'; }).join('');
   }
   function render(data) {

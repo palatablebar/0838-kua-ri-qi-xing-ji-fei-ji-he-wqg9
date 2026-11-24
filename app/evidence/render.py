@@ -16,6 +16,11 @@ def render(run):
         "source": run["source"],
         "counts": run["counts"],
         "ledger": run["ledger"],
+        "disputes": {"pairs": run.get("disputes", {}).get("pairs", []),
+                     "groups": run.get("disputes", {}).get("groups", []),
+                     "disputed_rides": run.get("disputes", {}).get("disputed_rides", []),
+                     "cleared_rides": run.get("disputes", {}).get("cleared_rides", []),
+                     "held_total": run.get("disputes", {}).get("held_total", "0")},
         "summary": run["summary"],
         "review": {"status": run["status"], "revision": run["revision"], "comment": run["comment"]},
     }

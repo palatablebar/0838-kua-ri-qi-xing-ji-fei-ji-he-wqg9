@@ -5,6 +5,7 @@ from pathlib import Path
 from app.catalog import SPEC
 from app.domain.calculate import calculate_rows
 from app.domain.decision import decide_rows
+from app.domain.overlap import empty_disputes, resolve_overlaps
 from app.domain.prepare import prepare_rows
 from app.intake.service import load
 from app.reconcile.ledger import build_ledger
@@ -31,14 +32,17 @@ def pipeline(profile="dirty", path=None, upto="证据交付"):
     prepared, prepare_issues = [], []
     results = []
     ledger = None
+    disputes = empty_disputes()
     if _stage(upto) >= 2:
         prepared, prepare_issues = prepare_rows(intake["rows"])
     if _stage(upto) >= 3:
         results = calculate_rows(prepared)
     if _stage(upto) >= 4:
         results = decide_rows(results)
+        # 同车时间重叠按骑行配对裁决，争议方升级为阻断
+        disputes = resolve_overlaps(results)
     if _stage(upto) >= 5:
-        ledger = build_ledger(intake, prepared, prepare_issues, results)
+        ledger = build_ledger(intake, prepared, prepare_issues, results, disputes)
     intake["counts"]["prepared"] = len(prepared)
     intake["counts"]["computed"] = len(results)
     issues = intake["issues"] + prepare_issues
@@ -58,7 +62,8 @@ def pipeline(profile="dirty", path=None, upto="证据交付"):
     else:
         for item in results[:18]:
             rows.append({key: value for key, value in item.items()
-                         if key in {"label", "verdict", "reason", "metric", "limit", "status", "state", "breakdown"}
+                         if key in {"label", "verdict", "reason", "metric", "limit", "status", "state",
+                                    "breakdown", "overlap_state", "overlap_with"}
                          or key in SPEC["columns"] or key in SPEC["result_columns"]})
     source = {"profile": profile, "filename": Path(intake["path"]).name, "sha256": intake["sha256"]}
     payload = {
@@ -73,6 +78,7 @@ def pipeline(profile="dirty", path=None, upto="证据交付"):
         "chart": chart,
         "summary": summary,
         "ledger": ledger,
+        "disputes": disputes if _stage(upto) >= 4 else empty_disputes(),
         "stages": [{"id": "intake", "name": SPEC["stages"][0]},
                    {"id": "prepare", "name": SPEC["stages"][1]},
                    {"id": "calculate", "name": SPEC["stages"][2]},

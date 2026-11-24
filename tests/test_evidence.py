@@ -38,3 +38,11 @@ def test_artifact_has_stable_digest(client):
     run = approved(client)
     artifact = client.get(f"/api/runs/{run['run_id']}/evidence").get_json()
     assert len(artifact["artifact_sha256"]) == 64
+
+
+def test_artifact_carries_dispute_section(client):
+    run = approved(client)
+    artifact = client.get(f"/api/runs/{run['run_id']}/evidence").get_json()
+    assert "disputes" in artifact
+    assert set(artifact["disputes"]) == {"pairs", "groups", "disputed_rides", "cleared_rides", "held_total"}
+    assert artifact["disputes"]["held_total"] == "0"
